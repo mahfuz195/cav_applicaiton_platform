@@ -1,4 +1,4 @@
-# Connected Autonomous Vehcile Applicaiton Development Platform
+# Connected Autonomous Vehcile Application Development Platform
 ---
 
 This code repository is the sample application developmenet for CAV. 
