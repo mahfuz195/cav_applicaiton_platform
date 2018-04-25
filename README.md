@@ -1,4 +1,4 @@
-# Connected Autonomous Vehcile Application Development Platform
+# Connected Autonomous Vehcile Application Development Platform (CVDeP)
 ---
 
 This code repository is the sample application developmenet for CAV. 
@@ -24,7 +24,9 @@ we are using a modified BSM message in JSON format in this example:
   'timestamp': '1524604110368', 
   'longitude': -82.84551, 
   'latitude': 34.676059, 
-  'speed': 20.073232
+  'speed': 20.073232,
+  'type': 1,
+  'angle': 250
 }
 ```
 
