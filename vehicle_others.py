@@ -11,8 +11,8 @@ TOPIC = 'cvbsm'
 
 ###########################################################################
 filename = 'vehicle_data.csv'
-car_id = 1
-
+car_id = 2
+car_ids = [2,3,4,5,6,7,8]
 ###########################################################################
 class Vehicle():
     def __init__(self,_id):
@@ -34,9 +34,14 @@ class Vehicle():
         self.time = time
     def get_time():
         return time
-
-my_vehicle = Vehicle(car_id)
-print ('my vehicle id :' , my_vehicle.id)
+############################################################################
+v_dict = {}
+def create_vehicles():
+    global v_dict
+    print ('creating the vehicles')
+    for carid in car_ids:
+        vehicle = Vehicle(carid)
+        v_dict[carid] = vehicle
 ############################################################################
 
 
@@ -51,10 +56,9 @@ def ReadDataFromFile(file_name):
 def LoadPartialData(time):
     global full_data
     ldata = full_data[full_data['time']>= time]
-    ldata = ldata[ldata['id']==car_id]
+    #ldata = ldata[ldata['id']==car_id]
     pdata = ldata[ldata['time']<(time+0.1)]
     return pdata
-
 ##### Data set loading ends ################################################
 class UpdateState(threading.Thread):
     end_time = 200
@@ -63,27 +67,26 @@ class UpdateState(threading.Thread):
     filename = filename
 
     def __init(self):
-        #ReadDataFromFile(self.filename)
-        threading.Thread.__init__(self)
+	#ReadDataFromFile(self.filename)
+	threading.Thread.__init__(self)
     def run(self):
-        global my_vehicle
+	global v_dict
         while(self.steps <= self.end_time):
           #print 'updating state thread'
           pd = LoadPartialData(self.steps)
-
+	  
           for index,row in pd.iterrows():
-              if(int(row['id'])==my_vehicle.id):
-                my_vehicle.set_speed(row['speed'])
-                my_vehicle.set_location(row['x'],row['y'])
-                print ('locaiton of car, ', my_vehicle.id , ' is (',my_vehicle.get_location())
+	      if(int(row['id']) in car_ids):
+		carid = int(row['id'])
+                v_dict[carid].set_speed(row['speed'])
+		v_dict[carid].set_location(row['x'],row['y'])
+		print ('locaiton of car, ', v_dict[carid].id , ' is (',v_dict[carid].get_location())
                 data = "{\"carid\":"+ str(row['id']) +",\"seq\":" + str(self.count) + ",\"timestamp\":\"" + str(int(time.time()*1000)) + "\",\"longitude\":"+ str(row['x'])+",\"latitude\":"+ str(row['y'])+",\"speed\":" + str(row['speed']) + "}"
                 producer.send(TOPIC,data)
           time.sleep(0.1)
           self.steps+=0.1
           self.count+=1
-
-
-##### Data set loading ends ################################################
+##############################################################
 class BroadcastData(threading.Thread):
     end_time = 200
     steps = 0.0
@@ -97,17 +100,16 @@ class BroadcastData(threading.Thread):
 	print ('car ', car_id, ' started broadcasting data!')
         while(self.steps <= self.end_time):
           #print 'start thread'
-          pd = LoadPartialData(self.steps)
+          #pd = LoadPartialData(self.steps)
+          for carid in car_ids:
+	      x,y = v_dict[carid].get_location()
+              spd = v_dict[carid].get_speed()
+	      data = "{\"carid\":"+ str(carid) +",\"seq\":" + str(self.count) + ",\"timestamp\":\"" + str(int(time.time()*1000)) + "\",\"longitude\":"+ str(x)+",\"latitude\":"+ str(y)+",\"speed\":" + str(spd) + "}"
 
-	  for index,row in pd.iterrows():
-            data = "{\"carid\":"+ str(row['id']) +",\"seq\":" + str(self.count) + ",\"timestamp\":\"" + str(int(time.time()*1000)) + "\",\"longitude\":"+ str(row['x'])+",\"latitude\":"+ str(row['y'])+",\"speed\":" + str(row['speed']) + "}"
-
-            #print (data)
-	    #producer.send(TOPIC,data)
-            cs = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP)
-            cs.setsockopt(SOL_SOCKET, SO_REUSEADDR, 1)
-            cs.setsockopt(SOL_SOCKET, SO_BROADCAST, 1)
-            cs.sendto(data,('',4499))
+              cs = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP)
+              cs.setsockopt(SOL_SOCKET, SO_REUSEADDR, 1)
+              cs.setsockopt(SOL_SOCKET, SO_BROADCAST, 1)
+              cs.sendto(data,('',4499))
                       
           time.sleep(0.1)
 	  self.steps+=0.1
@@ -131,6 +133,7 @@ class ReceiveData(threading.Thread):
 
 def main():
     ReadDataFromFile(filename)
+    create_vehicles()
 #    rx = ReceiveData()
 #    rx.start()
     

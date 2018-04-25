@@ -6,6 +6,11 @@ import json
 import pandas as pd
 import numpy as np
 
+from kafka import KafkaProducer
+producer = KafkaProducer(bootstrap_servers='130.127.198.22:9092')
+TOPIC = 'cvbsm'
+###########################################################################
+filename = 'vehicle_data.csv'
 car_id = 0
 ############################################################################
 class Vehicle():
@@ -29,7 +34,7 @@ class Vehicle():
     def get_time():
 	return time
 
-my_vehicle = Vehicle(0)
+my_vehicle = Vehicle(car_id)
 print ('my vehicle id :' , my_vehicle.id)
 ############################################################################
 def haversine_np(lon1, lat1, lon2, lat2, miles= False, meter = False, km = False, feet= False):
@@ -68,14 +73,14 @@ def LoadPartialData(time):
     ldata = ldata[ldata['id']==car_id]
     pdata = ldata[ldata['time']<(time+0.1)]
     return pdata
-
-ReadDataFromFile('vehicleGeoData.csv')
+#############################################
+ReadDataFromFile(filename)
 ##### Data set loading ends ################################################
 class UpdateState(threading.Thread):
     end_time = 200
     steps = 0.0
     count = 0
-    filename = 'vehicleGeoData.csv'
+    filename = filename
 
     def __init(self):
 	#ReadDataFromFile(self.filename)
@@ -91,7 +96,8 @@ class UpdateState(threading.Thread):
 		my_vehicle.set_speed(row['speed'])
 		my_vehicle.set_location(row['x'],row['y'])
 		#print ('locaiton of car, ', my_vehicle.id , ' is (',my_vehicle.get_location())
-
+                data = "{\"carid\":"+ str(row['id']) +",\"seq\":" + str(self.count) + ",\"timestamp\":\"" + str(int(time.time()*1000)) + "\",\"longitude\":"+ str(row['x'])+",\"latitude\":"+ str(row['y'])+",\"speed\":" + str(row['speed']) + "}"
+                producer.send(TOPIC,data)
           time.sleep(0.1)
           self.steps+=0.1
           self.count+=1
@@ -153,7 +159,7 @@ class ReceiveData(threading.Thread):
         while(True):
             try:
                 data, sender_addr= cs.recvfrom(1024)
-		#print (data)
+		print (data)
 		jdata = json.loads(data)
 		#print ('ldata car id = ' , jdata['carid'], ' speed :', jdata['speed'])
 		
