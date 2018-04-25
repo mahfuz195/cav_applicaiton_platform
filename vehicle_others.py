@@ -81,8 +81,17 @@ class UpdateState(threading.Thread):
                 v_dict[carid].set_speed(row['speed'])
 		v_dict[carid].set_location(row['x'],row['y'])
 		print ('locaiton of car, ', v_dict[carid].id , ' is (',v_dict[carid].get_location())
-                data = "{\"carid\":"+ str(row['id']) +",\"seq\":" + str(self.count) + ",\"timestamp\":\"" + str(int(time.time()*1000)) + "\",\"longitude\":"+ str(row['x'])+",\"latitude\":"+ str(row['y'])+",\"speed\":" + str(row['speed']) + "}"
+                
+                data = "{\"carid\":"+ str(row['id']) +",\"seq\":" + str(self.count) + \
+                        ",\"timestamp\":\"" + str(int(time.time()*1000)) + \
+                        "\",\"longitude\":"+ str(row['x'])+ \
+                        ",\"latitude\":"+ str(row['y'])+ \
+                        ",\"speed\":" + str(row['speed']) + \
+                        ",\"angle\":" + str(row['angle']) + \
+                        ",\"type\":" + str(row['type']) + \
+                        "}"
                 producer.send(TOPIC,data)
+
           time.sleep(0.1)
           self.steps+=0.1
           self.count+=1

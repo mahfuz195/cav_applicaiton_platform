@@ -96,7 +96,14 @@ class UpdateState(threading.Thread):
 		my_vehicle.set_speed(row['speed'])
 		my_vehicle.set_location(row['x'],row['y'])
 		#print ('locaiton of car, ', my_vehicle.id , ' is (',my_vehicle.get_location())
-                data = "{\"carid\":"+ str(row['id']) +",\"seq\":" + str(self.count) + ",\"timestamp\":\"" + str(int(time.time()*1000)) + "\",\"longitude\":"+ str(row['x'])+",\"latitude\":"+ str(row['y'])+",\"speed\":" + str(row['speed']) + "}"
+                data = "{\"carid\":"+ str(row['id']) +",\"seq\":" + str(self.count) + \
+			",\"timestamp\":\"" + str(int(time.time()*1000)) + \
+			"\",\"longitude\":"+ str(row['x'])+ \
+			",\"latitude\":"+ str(row['y'])+ \
+			",\"speed\":" + str(row['speed']) + \
+			",\"angle\":" + str(row['angle']) + \
+			",\"type\":" + str(row['type']) + \
+			"}"
                 producer.send(TOPIC,data)
           time.sleep(0.1)
           self.steps+=0.1
@@ -128,7 +135,7 @@ class BroadcastData(threading.Thread):
 
 #############################################################################
 class ReceiveData(threading.Thread):
-    dist_threshold = 2000 #ft
+    dist_threshold = 900 #ft
     def __init__(self):
         threading.Thread.__init__(self)
     def filter_data(self,data):
@@ -159,7 +166,7 @@ class ReceiveData(threading.Thread):
         while(True):
             try:
                 data, sender_addr= cs.recvfrom(1024)
-		print (data)
+		#print (data)
 		jdata = json.loads(data)
 		#print ('ldata car id = ' , jdata['carid'], ' speed :', jdata['speed'])
 		
