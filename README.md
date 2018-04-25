@@ -1,4 +1,4 @@
-# Connected Autonomous Vehcile Application Development Platform
+# Connected Autonomous Vehcile Application Development Platform (CVDeP)
 ---
 
 This code repository is the sample application developmenet for CAV. 
