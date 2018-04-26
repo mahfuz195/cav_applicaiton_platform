@@ -40,6 +40,10 @@ Given the hardware setup, we can develop an application in the target vehcile. F
 Inside this scrip one can write the applicaiton in section tagged with "Application". As an example, collision detection application can be like this: 
 
 ```
+##############################################
+#####		APPLICATIONS		######
+##############################################
+
 class CVApplications(threading.Thread):
     def __init__(self):
         threading.Thread.__init__(self)
