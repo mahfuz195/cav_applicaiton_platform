@@ -12,7 +12,7 @@ This repo contains following files:
 
 1. VehcileGeoData.csv : comma separated file which contains the trace of each vehcile locaiton, timestamp, and speed information.
 2. Vehicle_1.py : Is the target vehcile where we want to develop an application.
-3. Vehicle_2.py : A vehcile who is broadcasting its own Basic Safety Messages at 10 Hz 
+3. Vehicle_others.py : Other vehciles who are broadcasting its own Basic Safety Messages at 10 Hz 
 
 ### BSM data format:
 
