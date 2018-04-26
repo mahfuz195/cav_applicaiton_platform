@@ -68,7 +68,7 @@ class CVApplications(threading.Thread):
 
     #######################################
     def run(self):
-	      while True:
+	while True:
            self.CollisionAvoidance()
            ## put your application function here like collision avoidance
            time.sleep(0.1)
