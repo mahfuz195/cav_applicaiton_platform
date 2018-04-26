@@ -11,7 +11,7 @@ producer = KafkaProducer(bootstrap_servers='130.127.198.22:9092')
 TOPIC = 'cvbsm'
 ###########################################################################
 filename = 'vehicle_data.csv'
-car_id = 0
+car_id = 1
 ############################################################################
 class Vehicle():
     def __init__(self,_id):
@@ -162,7 +162,7 @@ class ReceiveData(threading.Thread):
     def run (self):
         cs = socket(AF_INET, SOCK_DGRAM)
         cs.setsockopt(SOL_SOCKET,SO_REUSEADDR,1)
-	cs.bind(('',4499))
+	cs.bind(('192.168.2.1',4499))
         while(True):
             try:
                 data, sender_addr= cs.recvfrom(1024)
