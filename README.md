@@ -15,7 +15,12 @@ This repo contains following files:
 3. Vehicle_others.py : Other vehciles who are broadcasting its own Basic Safety Messages at 10 Hz 
 
 ### Hardware setup:
+
+<< will be added later >>
+<<!-- 
 ![Alt text](configs/organic_firm_hw_setup.jpg?raw=true "Harware Setup for CAV platfrom")
+-->
+
 ### BSM data format:
 
 we are using a modified BSM message in JSON format in this example:
