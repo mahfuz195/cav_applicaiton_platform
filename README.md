@@ -17,9 +17,9 @@ This repo contains following files:
 ### Hardware setup:
 
 << will be added later >>
-<!-- 
+
 ![Alt text](configs/organic_firm_hw_setup.jpg?raw=true "Harware Setup for CAV platfrom")
--->
+
 
 ### BSM data format:
 
