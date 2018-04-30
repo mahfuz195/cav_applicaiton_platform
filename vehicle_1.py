@@ -1,11 +1,17 @@
 from socket import *
 import threading
+import sys
 import time
-from haversine import haversine
+#from haversine import haversine
 import json
 import pandas as pd
 import numpy as np
 
+######### CVDeP Libs ###########
+from libs.vehicle import Vehicle
+from libs.haversine import haversine_np
+from libs.data_io import ReadDataFromFile, LoadPartialData
+################################
 from kafka import KafkaProducer
 producer = KafkaProducer(bootstrap_servers='130.127.198.22:9092')
 TOPIC = 'cvbsm'
@@ -13,68 +19,18 @@ TOPIC = 'cvbsm'
 filename = 'vehicle_data.csv'
 car_id = 1
 ############################################################################
-class Vehicle():
-    def __init__(self,_id):
-	self.id   = _id
-	self.long = 0 
-	self.lati = 0
-	self.speed= 0
-	self.time = 0
-    def get_location(self):
-	return self.long, self.lati
-    def set_location(self, lon, lat):
-	self.long = lon
-	self.lati = lat
-    def set_speed(self, spd):
-	self.speed = spd
-    def get_speed(self):
-	return self.speed
-    def set_time(self,time):
-	self.time = time
-    def get_time():
-	return time
-
 my_vehicle = Vehicle(car_id)
 print ('my vehicle id :' , my_vehicle.id)
 ############################################################################
-def haversine_np(lon1, lat1, lon2, lat2, miles= False, meter = False, km = False, feet= False):
-    
-    lon1, lat1, lon2, lat2 = map(np.radians, [lon1, lat1, lon2, lat2])
-
-    dlon = lon2 - lon1
-    dlat = lat2 - lat1
-
-    a = np.sin(dlat/2.0)**2 + np.cos(lat1) * np.cos(lat2) * np.sin(dlon/2.0)**2
-
-    c = 2 * np.arcsin(np.sqrt(a))
-    
-    dist = 6367 * c
-	
-    if (miles==True):
-	dist = 0.621371 * dist
-    elif (meter== True):
-	dist = dist * 1000.0
-    elif (feet== True):
-	dist = dist * 3280.84
-    return dist
 #### Data set Loading starts ###############################################
 full_data = 0
-def ReadDataFromFile(file_name):
-    global full_data
-    df = pd.read_csv(file_name)
-    full_data = df
-    X = np.array(df)
-    print (X)
-    return X
-
-def LoadPartialData(time):
-    global full_data, my_vehicle
-    ldata = full_data[full_data['time']>= time]
-    ldata = ldata[ldata['id']==car_id]
-    pdata = ldata[ldata['time']<(time+0.1)]
-    return pdata
 #############################################
 ReadDataFromFile(filename)
+
+def save_data(data):
+    with open('delay_result.txt','a+') as f:
+        json.dump(data,f)
+
 ##### Data set loading ends ################################################
 class UpdateState(threading.Thread):
     end_time = 200
@@ -83,27 +39,27 @@ class UpdateState(threading.Thread):
     filename = filename
 
     def __init(self):
-	#ReadDataFromFile(self.filename)
-	threading.Thread.__init__(self)
+        #ReadDataFromFile(self.filename)
+        threading.Thread.__init__(self)
     def run(self):
-	global my_vehicle
+        global my_vehicle
         while(self.steps <= self.end_time):
           #print 'updating state thread'
-          pd = LoadPartialData(self.steps)
-	  
+          pd = LoadPartialData(self.steps, my_vehicle.id)
+          
           for index,row in pd.iterrows():
-	      if(int(row['id'])==my_vehicle.id):
-		my_vehicle.set_speed(row['speed'])
-		my_vehicle.set_location(row['x'],row['y'])
-		#print ('locaiton of car, ', my_vehicle.id , ' is (',my_vehicle.get_location())
+              if(int(row['id'])==my_vehicle.id):
+                my_vehicle.set_speed(row['speed'])
+                my_vehicle.set_location(row['x'],row['y'])
+                #print ('locaiton of car, ', my_vehicle.id , ' is (',my_vehicle.get_location())
                 data = "{\"carid\":"+ str(row['id']) +",\"seq\":" + str(self.count) + \
-			",\"timestamp\":\"" + str(int(time.time()*1000)) + \
-			"\",\"longitude\":"+ str(row['x'])+ \
-			",\"latitude\":"+ str(row['y'])+ \
-			",\"speed\":" + str(row['speed']) + \
-			",\"angle\":" + str(row['angle']) + \
-			",\"type\":" + str(row['type']) + \
-			"}"
+                        ",\"timestamp\":\"" + str(int(time.time()*1000)) + \
+                        "\",\"longitude\":"+ str(row['x'])+ \
+                        ",\"latitude\":"+ str(row['y'])+ \
+                        ",\"speed\":" + str(row['speed']) + \
+                        ",\"angle\":" + str(row['angle']) + \
+                        ",\"type\":" + str(row['type']) + \
+                        "}"
                 producer.send(TOPIC,data)
           time.sleep(0.1)
           self.steps+=0.1
@@ -117,10 +73,11 @@ class BroadcastData(threading.Thread):
         threading.Thread.__init__(self)
 
     def run (self):
+	global my_vehicle
         #print ('car ', car_id, ' started broadcasting data!')
         while(self.steps <= self.end_time):
           #print 'start thread'
-          pd = LoadPartialData(self.steps)
+          pd = LoadPartialData(self.steps,my_vehicle.id)
 
           for index,row in pd.iterrows():
             data = "{\"carid\":"+ str(row['id']) +",\"seq\":" + str(self.count) + ",\"timestamp\":\"" + str(int(time.time()*1000)) + "\",\"longitude\":"+ str(row['x'])+",\"latitude\":"+ str(row['y'])+",\"speed\":" + str(row['speed']) + "}"
@@ -135,55 +92,58 @@ class BroadcastData(threading.Thread):
 
 #############################################################################
 class ReceiveData(threading.Thread):
-    dist_threshold = 900 #ft
+    dist_threshold = 2000 #ft
     def __init__(self):
         threading.Thread.__init__(self)
     def filter_data(self,data):
-	global my_vehicle
-	#print ('in filter data:', data)
-	
-	car2_id = data['carid']
-	car2_long = data['longitude']
-	car2_lati = data['latitude']
+        global my_vehicle
+        #print ('in filter data:', data)
+        
+        car2_id = data['carid']
+        car2_long = data['longitude']
+        car2_lati = data['latitude']
 
-	#print ('car id:' , data['carid']), 
-	#print ('logitude: ', data['longitude']),
-	#print ('latitude: ', data['latitude']),
-	#print ('speed:', data['speed'])
-	#car2_location = (data['longitude'], data['latitude'])
-	my_lon, my_lat = my_vehicle.get_location()
-	#print ('before calculating the ')
-	#print ('car 1 location (', my_lon, ',', my_lat , '), car 2 location (', car2_long , ', ' , car2_lati,')')
-	dist = haversine_np(my_lon, my_lat, car2_long, car2_lati,feet= True)
-	#print ('distance between',my_vehicle.id ,' and car ', car2_id , ' is :', dist , ' feet')
+        #print ('car id:' , data['carid']), 
+        #print ('logitude: ', data['longitude']),
+        #print ('latitude: ', data['latitude']),
+        #print ('speed:', data['speed'])
+        #car2_location = (data['longitude'], data['latitude'])
+        my_lon, my_lat = my_vehicle.get_location()
+        #print ('before calculating the ')
+        #print ('car 1 location (', my_lon, ',', my_lat , '), car 2 location (', car2_long , ', ' , car2_lati,')')
+        dist = haversine_np(my_lon, my_lat, car2_long, car2_lati,feet= True)
+        #print ('distance between',my_vehicle.id ,' and car ', car2_id , ' is :', dist , ' feet')
         if (dist <= self.dist_threshold):
             return data
 
     def run (self):
         cs = socket(AF_INET, SOCK_DGRAM)
         cs.setsockopt(SOL_SOCKET,SO_REUSEADDR,1)
-	cs.bind(('192.168.2.1',4499))
+        cs.bind(('192.168.2.1',4499))
         while(True):
             try:
                 data, sender_addr= cs.recvfrom(1024)
-		#print (data)
-		jdata = json.loads(data)
-		#print ('ldata car id = ' , jdata['carid'], ' speed :', jdata['speed'])
-		
-		#pdf = pd.DataFrame(ldata,index=[0])
-		data = self.filter_data(jdata)		
+                #print ('data rx size in bytes:' , sys.getsizeof(data))
+                jdata = json.loads(data)
+                #jdata = jdata.encode('utf-8')
+                #print ('ldata car id = ' , jdata['carid'], ' speed :', jdata['speed'])
+                
+                #pdf = pd.DataFrame(ldata,index=[0])
+                data = self.filter_data(jdata)		
+                #print ('size of packet: ' , len(data.encode('utf-8')))
 		if(data != None):
-		    print ('rx by car:', car_id ,':', data)
+                    print ('rx by car:', car_id ,':', data)
+                    data['rx_time'] = long(time.time() * 1000.0)
 		    maintain_v_dict(data)
-	    #except ValueError as err:
-		#print ('json parse error!' , err)
-	    except Exception as err:
-		print (err)
-		#cs.close()
-		#break
-		pass
-
-
+		    #print ('v_pack, rx_time, ' , data)
+                    #ForwardCollision(data)
+            #except ValueError as err:
+                #print ('json parse error!' , err)
+            except Exception as err:
+                print (err)
+                #cs.close()
+                #break
+                pass
 v_dict = {}
 def maintain_v_dict(data):
     car_id = data['carid']
@@ -196,14 +156,35 @@ def maintain_v_dict(data):
     vehicle.set_location(car_long,car_lati)
     vehicle.set_speed(car_spd)
     vehicle.set_time(car_time)
+    vehicle.set_packet(data)
 
+    #print ('v_pack: maintain_dict, ' , vehicle.get_packet())
     v_dict[car_id] = vehicle
 
 ##############################################
 #####		APPLICATIONS		######
 ##############################################
 
+
 ### Part 1 : Real time Vehicle probe data
+def ForwardCollision(data):
+    global my_vehicle
+    carid = data['carid']
+    lon1 = data['longitude']
+    lat1 = data['latitude']
+
+    lon2, lat2 = my_vehicle.get_location()
+
+    dist = haversine_np(lon1, lat1,lon2,lat2, meter = True)
+    if(dist<5):
+        print ('Collision ahead!')
+    else :
+        print ('No Collision between car', my_vehicle.id, ' and car ', carid)
+
+        data['app_out'] = long(time.time() * 1000.0)
+        
+        print ('packet, app out, ' , data)
+
 
 class CVApplications(threading.Thread):
     def __init__(self):
@@ -216,20 +197,33 @@ class CVApplications(threading.Thread):
        for carid, car in v_dict.items():
            lon1 , lat1 = car.get_location()
            lon2 , lat2 = my_vehicle.get_location()
-
-           dist = haversine_np(lon1, lat1,lon2,lat2, meter = True)
-           if(dist<5):
-               print ('Collision ahead!')
-           else :
-               print ('No Collision between car', my_vehicle.id, ' and car ', carid)
-
-
+	   
+           v_packet = car.get_packet()
+	   #print ('v_pack:' , v_packet)
+           ## check if the packet is already been calculated or not
+	   if (('app_out' in v_packet)==False):
+               dist = haversine_np(lon1, lat1,lon2,lat2, meter = True)
+               if(dist<5):
+                   print ('Collision ahead!')
+               else :
+                   print ('No Collision between car', my_vehicle.id, ' and car ', carid)
+               
+               v_packet['app_out'] = long(time.time() * 1000.0)
+	       
+               t1 = long(v_packet['timestamp'])
+               t2 = long(v_packet['app_out'])
+               
+               print ('app output time:' , (t2-t1) , ' ms')
+               #print ('calculation delay:' , )
+               car.set_packet(v_packet)
+               save_data(v_packet)
+	       print ('v_pack, app out, ' , v_packet)
 
     #######################################
     def run(self):
-	while True:
+        while True:
            self.CollisionAvoidance()
-           time.sleep(0.1)
+           time.sleep(0.01)
     ######################################
 
 
