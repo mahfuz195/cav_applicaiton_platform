@@ -24,16 +24,13 @@ print ('my vehicle id :' , my_vehicle.id)
 ############################################################################
 #### Data set Loading starts ###############################################
 full_data = 0
-<<<<<<< HEAD
-=======
-
->>>>>>> 0d24e6382bd0f42f3e9078f89f4843c11c774255
 #############################################
 ReadDataFromFile(filename)
 
 def save_data(data):
     with open('delay_result.txt','a+') as f:
-        json.dump(data,f)
+        #json.dump(data,f)
+        f.write(data + '\n')
 
 ##### Data set loading ends ################################################
 class UpdateState(threading.Thread):
@@ -49,11 +46,9 @@ class UpdateState(threading.Thread):
         global my_vehicle
         while(self.steps <= self.end_time):
           #print 'updating state thread'
-<<<<<<< HEAD
+
           pd = LoadPartialData(self.steps, my_vehicle.id)
-=======
-          pd = LoadPartialData(self.steps)
->>>>>>> 0d24e6382bd0f42f3e9078f89f4843c11c774255
+
           
           for index,row in pd.iterrows():
               if(int(row['id'])==my_vehicle.id):
@@ -131,19 +126,15 @@ class ReceiveData(threading.Thread):
         while(True):
             try:
                 data, sender_addr= cs.recvfrom(1024)
-<<<<<<< HEAD
                 #print ('data rx size in bytes:' , sys.getsizeof(data))
                 jdata = json.loads(data)
                 #jdata = jdata.encode('utf-8')
-=======
                 #print (data)
-                jdata = json.loads(data)
->>>>>>> 0d24e6382bd0f42f3e9078f89f4843c11c774255
+                
                 #print ('ldata car id = ' , jdata['carid'], ' speed :', jdata['speed'])
                 
                 #pdf = pd.DataFrame(ldata,index=[0])
                 data = self.filter_data(jdata)		
-<<<<<<< HEAD
                 #print ('size of packet: ' , len(data.encode('utf-8')))
 		if(data != None):
                     print ('rx by car:', car_id ,':', data)
@@ -151,11 +142,6 @@ class ReceiveData(threading.Thread):
 		    maintain_v_dict(data)
 		    #print ('v_pack, rx_time, ' , data)
                     #ForwardCollision(data)
-=======
-                if(data != None):
-                    print ('rx by car:', car_id ,':', data)
-                    maintain_v_dict(data)
->>>>>>> 0d24e6382bd0f42f3e9078f89f4843c11c774255
             #except ValueError as err:
                 #print ('json parse error!' , err)
             except Exception as err:
@@ -231,11 +217,15 @@ class CVApplications(threading.Thread):
 	       
                t1 = long(v_packet['timestamp'])
                t2 = long(v_packet['app_out'])
-               
+               rx = long(v_packet['rx_time'])
+	       
+               del_rx = rx - t1
+               del_app = t2 - t1 
+
                print ('app output time:' , (t2-t1) , ' ms')
                #print ('calculation delay:' , )
                car.set_packet(v_packet)
-               save_data(v_packet)
+               save_data(str(car_id) + ',' + str(del_rx) + ',' + str(del_app))
 	       print ('v_pack, app out, ' , v_packet)
 
     #######################################
