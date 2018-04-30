@@ -24,6 +24,10 @@ print ('my vehicle id :' , my_vehicle.id)
 ############################################################################
 #### Data set Loading starts ###############################################
 full_data = 0
+<<<<<<< HEAD
+=======
+
+>>>>>>> 0d24e6382bd0f42f3e9078f89f4843c11c774255
 #############################################
 ReadDataFromFile(filename)
 
@@ -45,7 +49,11 @@ class UpdateState(threading.Thread):
         global my_vehicle
         while(self.steps <= self.end_time):
           #print 'updating state thread'
+<<<<<<< HEAD
           pd = LoadPartialData(self.steps, my_vehicle.id)
+=======
+          pd = LoadPartialData(self.steps)
+>>>>>>> 0d24e6382bd0f42f3e9078f89f4843c11c774255
           
           for index,row in pd.iterrows():
               if(int(row['id'])==my_vehicle.id):
@@ -123,13 +131,19 @@ class ReceiveData(threading.Thread):
         while(True):
             try:
                 data, sender_addr= cs.recvfrom(1024)
+<<<<<<< HEAD
                 #print ('data rx size in bytes:' , sys.getsizeof(data))
                 jdata = json.loads(data)
                 #jdata = jdata.encode('utf-8')
+=======
+                #print (data)
+                jdata = json.loads(data)
+>>>>>>> 0d24e6382bd0f42f3e9078f89f4843c11c774255
                 #print ('ldata car id = ' , jdata['carid'], ' speed :', jdata['speed'])
                 
                 #pdf = pd.DataFrame(ldata,index=[0])
                 data = self.filter_data(jdata)		
+<<<<<<< HEAD
                 #print ('size of packet: ' , len(data.encode('utf-8')))
 		if(data != None):
                     print ('rx by car:', car_id ,':', data)
@@ -137,6 +151,11 @@ class ReceiveData(threading.Thread):
 		    maintain_v_dict(data)
 		    #print ('v_pack, rx_time, ' , data)
                     #ForwardCollision(data)
+=======
+                if(data != None):
+                    print ('rx by car:', car_id ,':', data)
+                    maintain_v_dict(data)
+>>>>>>> 0d24e6382bd0f42f3e9078f89f4843c11c774255
             #except ValueError as err:
                 #print ('json parse error!' , err)
             except Exception as err:

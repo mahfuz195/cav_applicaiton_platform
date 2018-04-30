@@ -14,5 +14,10 @@ def LoadPartialData(time, car_id = 1):
     global full_data, my_vehicle
     ldata = full_data[full_data['time']>= time]
     ldata = ldata[ldata['id']== car_id]
+
+def LoadPartialData(time):
+    global full_data, my_vehicle
+    ldata = full_data[full_data['time']>= time]
+    ldata = ldata[ldata['id']==car_id]
     pdata = ldata[ldata['time']<(time+0.1)]
     return pdata
