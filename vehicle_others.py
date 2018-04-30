@@ -12,7 +12,8 @@ TOPIC = 'cvbsm'
 ###########################################################################
 filename = 'vehicle_data.csv'
 car_id = 2
-car_ids = [2,3,4,5,6,7,8]
+car_ids = [x for x in range(1,50)]
+print ('car ids', car_ids)
 ###########################################################################
 class Vehicle():
     def __init__(self,_id):
